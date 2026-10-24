@@ -1,6 +1,8 @@
+
 import { ApiError } from '../types/api';
 
 // HARD RULES: No secrets, API keys, or Supabase code in the frontend
+
 export class ApiClientError extends Error {
   code: string;
 
@@ -11,13 +13,22 @@ export class ApiClientError extends Error {
   }
 }
 
-export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(endpoint, {
+// Set VITE_API_BASE_URL in Vercel to your Render backend URL.
+// Leave it unset locally to use Vite's development proxy.
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+
+export async function fetchApi<T>(
+  endpoint: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const url = `${API_BASE_URL}${endpoint}`;
+
+  const response = await fetch(url, {
+    ...options,
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
     },
-    ...options,
   });
 
   if (!response.ok) {
@@ -26,6 +37,7 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
 
     try {
       const data = await response.json();
+
       if (data?.error?.message) {
         message = data.error.message;
         code = data.error.code || code;

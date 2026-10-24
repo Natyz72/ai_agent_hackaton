@@ -1,3 +1,4 @@
+
 interface StepperProps {
   currentStep: number; // 1-4
 }
@@ -9,7 +10,7 @@ export function Stepper({ currentStep }: StepperProps) {
     { number: 3, label: 'Review' },
     { number: 4, label: 'Saved' },
   ];
-  
+
   return (
     <div className="flex items-center justify-between">
       {steps.map((step, index) => (
@@ -20,29 +21,32 @@ export function Stepper({ currentStep }: StepperProps) {
                 step.number === currentStep
                   ? 'bg-indigo-600 text-white'
                   : step.number < currentStep
-                  ? 'bg-indigo-100 text-indigo-700'
-                  : 'bg-slate-200 text-slate-600'
+                    ? 'bg-indigo-100 text-indigo-700'
+                    : 'bg-slate-200 text-slate-600'
               }`}
             >
               {step.number}
             </div>
-             <Link to={step.link}>
-              <span
-                className={`text-sm font-medium ${step.number === currentStep
-                    ? 'text-indigo-700'
-                    : step.number < currentStep
-                      ? 'text-indigo-600'
-                      : 'text-slate-600'
-                  }`}
-              >
-                {step.label}
-              </span>
-            </Link>
+
+            <span
+              className={`text-sm font-medium ${
+                step.number === currentStep
+                  ? 'text-indigo-700'
+                  : step.number < currentStep
+                    ? 'text-indigo-600'
+                    : 'text-slate-600'
+              }`}
+            >
+              {step.label}
+            </span>
           </div>
+
           {index < steps.length - 1 && (
             <div
               className={`flex-1 h-px mx-4 ${
-                step.number < currentStep ? 'bg-indigo-300' : 'bg-slate-300'
+                step.number < currentStep
+                  ? 'bg-indigo-300'
+                  : 'bg-slate-300'
               }`}
             />
           )}
