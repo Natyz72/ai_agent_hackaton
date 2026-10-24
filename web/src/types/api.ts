@@ -1,163 +1,87 @@
-// API Contracts synchronized with FastAPI Pydantic models in backend/app/schemas/
+// HARD RULES: Mirror types exactly as specified
+export type IndicatorStatus = "detected" | "not_detected" | "not_assessable";
+export type RiskBand = "Low / Inconclusive" | "Suspicious" | "High";
 
-export interface EvidenceSpan {
-  start: number;
-  end: number;
-  text: string;
+export interface Evidence { start: number; end: number; text: string; source: string }
+export interface Indicator {
+  id: string;                 // e.g. "credential_request"
+  label: string;              // e.g. "Credential request"
+  status: IndicatorStatus;
+  reason?: string;            // required when not_assessable
+  evidence: Evidence[];       // offsets into the ORIGINAL message
+  tool: string;               // which tool produced it
 }
-
-export interface Finding {
-  id: string;
-  category: string;
-  status: 'detected' | 'not_detected' | 'not_assessable';
-  reason: string;
-  source_evidence: EvidenceSpan[];
-  evidence_ids: string[];
-  tool?: string | null;
+export interface UrlItem { raw: string; defanged: string; host: string }
+export interface GuidanceRef { id: string; title: string; excerpt: string }
+export interface AttackStep { step: string; evidence: Evidence[] }
+export interface RiskResult { 
+  score: number; 
+  band: RiskBand;
+  breakdown: { rule: string; points: number }[] 
 }
-
-export interface URLAnalysis {
-  url: string; // Defanged / escaped representation
-  normalized_host?: string | null;
-  is_ip: boolean;
-  has_user_info: boolean;
-  user_info?: string | null;
-  suspicious: boolean;
-  reasons: string[];
+export interface ValidationResult { passed: boolean; issues: string[] }
+export interface ActivityEntry { 
+  at: string; 
+  kind: "tool_call" | "tool_result" | "error" | "approval" | "save"; 
+  tool_name?: string; 
+  summary: string;
+  payload?: unknown 
 }
-
-export interface ReputationResult {
-  hostname: string;
-  status: 'known_trusted' | 'suspicious' | 'unknown';
-  source: string;
-  reason: string;
-}
-
-export interface GuidanceRef {
-  id: string;
-  title: string;
-  excerpt: string;
-  reason?: string | null;
-}
-
-export interface AttackStep {
-  step: number;
-  description: string;
-  evidence_ids: string[];
-  evidence_offsets: EvidenceSpan[];
-}
-
-export interface RiskBreakdownItem {
-  rule: string;
-  points: number;
-  reason: string;
-}
-
-export interface RiskAssessment {
-  level: 'low' | 'medium' | 'high';
-  score: number;
-  heuristic: boolean;
-  breakdown: RiskBreakdownItem[];
-  notes: string[];
-}
-
-export interface ActivityEvent {
-  id?: string | null;
-  type: string;
-  status: string;
-  detail?: Record<string, unknown> | null;
-  timestamp?: string | null;
-}
-
-export interface HighlightRegion {
-  start: number;
-  end: number;
-  text: string;
-  finding_id: string;
-  category: string;
-}
-
-export interface InvestigateRequest {
+export interface Assessment {
+  type: "assessment";
+  investigation_id: string;
   message: string;
-}
-
-export interface InvestigateResponse {
-  proposal_id: string;
-  status: 'ok' | 'clarification_needed' | 'error';
-  message: string;
-  findings: Finding[];
-  url_analysis: URLAnalysis[];
-  reputation: ReputationResult[];
-  guidance: GuidanceRef[];
+  urls: UrlItem[];
+  indicators: Indicator[];         // the 4 required plus extras
+  social_engineering: Indicator[]; // tactics found, same shape
+  domain_reputation: { 
+    host: string; 
+    status: "known_safe" | "known_suspicious" | "unknown"; 
+    source: string; 
+    note?: string 
+  }[];
   attack_sequence: AttackStep[];
-  validated_evidence: Finding[];
-  risk?: RiskAssessment | null;
-  highlights: HighlightRegion[];
-  guidance_draft: string;
-  clarification_questions: string[];
-  activity: ActivityEvent[];
-  expires_at?: string | null;
+  guidance: GuidanceRef[];
+  risk: RiskResult;
+  assessment: string;
+  next_steps: string[];
+  draft: string;
+  validation: ValidationResult;
+  activity: ActivityEntry[];
 }
 
-export interface IncidentApprovalRequest {
-  proposal_id: string;
-  approved: boolean;
-  analyst_notes?: string | null;
-  edited_guidance_draft?: string | null;
-  edited_findings?: Record<string, unknown>[] | null;
+export interface Clarification { type: "clarification"; question: string }
+export type InvestigateResponse = Assessment | Clarification;
+
+export interface InvestigateRequest { 
+  message: string; 
+  sender?: string;
+  display_name?: string; 
+  headers?: string; 
+  clarification_answer?: string 
 }
 
-export interface IncidentSaveResponse {
-  success: boolean;
-  incident_id?: string | null;
-  message: string;
+export interface CreateIncidentRequest { 
+  approved: true; 
+  reviewed_by?: string;
+  draft: string; 
+  draft_edited: boolean; 
+  assessment: Assessment 
 }
 
-export interface IncidentSummary {
-  id: string;
+export interface IncidentSummary { 
+  id: string; 
   created_at: string;
-  risk_level?: string | null;
-  summary?: string | null;
-  status?: string | null;
+  risk_band: RiskBand; 
+  status: string; 
+  reviewed_by?: string 
 }
 
-export interface IncidentListResponse {
-  incidents: IncidentSummary[];
-  total: number;
-  page: number;
-  page_size: number;
+export interface IncidentDetail extends IncidentSummary {
+  approved_at: string; 
+  draft_edited: boolean;
+  assessment: Assessment; 
+  final_draft: string 
 }
 
-export interface IncidentDetail {
-  id: string;
-  created_at: string;
-  proposal_id?: string | null;
-  message: string;
-  findings: Record<string, unknown>[];
-  risk?: Record<string, unknown> | null;
-  guidance_draft?: string | null;
-  guidance: Record<string, unknown>[];
-  url_analysis: Record<string, unknown>[];
-  attack_sequence: Record<string, unknown>[];
-  activity: ActivityEvent[];
-  analyst_notes?: string | null;
-}
-
-export interface IncidentActivityResponse {
-  incident_id: string;
-  activity: ActivityEvent[];
-}
-
-
-export interface DemoMessage {
-  id: string;
-  title: string;
-  category: string;
-  description: string;
-  expected_risk: string;
-  message: string;
-}
-
-export interface DemoMessagesResponse {
-  messages: DemoMessage[];
-}
+export interface ApiError { error: { code: string; message: string } }

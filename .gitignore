@@ -7,7 +7,7 @@ __pycache__/
 env/
 build/
 develop-eggs/
-dist/
+/dist/
 downloads/
 eggs/
 .eggs/
@@ -37,7 +37,6 @@ htmlcov/
 
 # Node / Frontend
 node_modules/
-web/dist/
 
 # IDE / OS
 .vscode/
