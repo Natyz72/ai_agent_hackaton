@@ -8,11 +8,14 @@ from app.db.client import db_client
 
 class Repository:
     def __init__(self):
-        self.client = db_client.get_client()
         # In-memory storage for offline/test environments when client is None
         self._in_memory_proposals: dict[str, dict[str, Any]] = {}
         self._in_memory_incidents: dict[str, dict[str, Any]] = {}
         self._in_memory_activity: list[dict[str, Any]] = []
+
+    @property
+    def client(self):
+        return db_client.get_client()
 
     # Trusted domains
     def get_trusted_domains(self) -> list[dict[str, Any]]:
@@ -197,7 +200,12 @@ class Repository:
         try:
             res = self.client.table("incidents").select("*").eq("id", incident_id).limit(1).execute()
             data = res.data or []
-            return data[0] if data else None
+            if not data:
+                return None
+            inc = dict(data[0])
+            if not inc.get("activity"):
+                inc["activity"] = self.get_activity_for_incident(incident_id)
+            return inc
         except Exception:
             return None
 

@@ -8,8 +8,8 @@ export function mergeEvidenceRanges(evidences: Evidence[]): Array<{ start: numbe
   
   // Create ranges
   const ranges = evidences
-    .map(e => ({ start: Math.min(e.start, e.end), end: Math.max(e.start, e.end) }))
-    .filter(r => r.start >= 0 && r.end >= r.start)
+    .filter(e => e.end > e.start && e.end > 0)
+    .map(e => ({ start: Math.max(0, e.start), end: e.end }))
     .sort((a, b) => {
       if (a.start !== b.start) return a.start - b.start;
       return a.end - b.end;

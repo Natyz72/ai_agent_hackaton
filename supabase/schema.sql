@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS guidance_passages (
 -- Investigation proposals (pending approval) - NOT incidents
 CREATE TABLE IF NOT EXISTS investigation_proposals (
     id UUID PRIMARY KEY,
-    status TEXT NOT NULL CHECK (status IN ('pending', 'approved', 'rejected', 'expired', 'used')),
+    status TEXT NOT NULL CHECK (status IN ('pending', 'approved', 'rejected', 'expired', 'used', 'saved')),
     message TEXT NOT NULL,
     output_snapshot JSONB NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS incidents (
     guidance JSONB,
     url_analysis JSONB,
     attack_sequence JSONB,
+    activity JSONB,
     analyst_notes TEXT,
     status TEXT DEFAULT 'saved',
     created_at TIMESTAMPTZ DEFAULT NOW()
