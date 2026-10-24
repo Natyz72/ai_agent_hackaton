@@ -36,16 +36,16 @@ class FakeLLMClient(LLMClient):
                 return self.scripted_responses.pop(0)
             return LLMResponse(content="Investigation complete.")
 
-        # Default multi-step investigation behavior
-        last_user_msg = ""
-        for m in reversed(messages):
-            if m.get("role") == "user":
-                last_user_msg = m.get("content", "")
+        # Default multi-step investigation behavior: extract original submitted message
+        original_user_msg = ""
+        for m in messages:
+            if m.get("role") == "user" and m.get("content"):
+                original_user_msg = m.get("content", "")
                 break
 
         # Extract hostnames from message for domain check
         found_hosts = []
-        for match in re.finditer(r"(?:https?://)?([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})", last_user_msg):
+        for match in re.finditer(r"(?:https?://)?([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})", original_user_msg):
             host = match.group(1).split("@")[-1].split(":")[0].lower()
             if host and host not in found_hosts:
                 found_hosts.append(host)
@@ -55,14 +55,14 @@ class FakeLLMClient(LLMClient):
         if self.call_count == 1:
             return LLMResponse(
                 tool_calls=[
-                    ToolCall(name="inspect_indicators", arguments={"message": last_user_msg}),
-                    ToolCall(name="analyze_url_structure", arguments={"message": last_user_msg}),
+                    ToolCall(name="inspect_indicators", arguments={"message": original_user_msg}),
+                    ToolCall(name="analyze_url_structure", arguments={"message": original_user_msg}),
                 ]
             )
         elif self.call_count == 2:
             return LLMResponse(
                 tool_calls=[
-                    ToolCall(name="detect_social_engineering", arguments={"message": last_user_msg}),
+                    ToolCall(name="detect_social_engineering", arguments={"message": original_user_msg}),
                     ToolCall(name="check_domain_reputation", arguments={"hostnames": found_hosts}),
                 ]
             )
@@ -70,7 +70,7 @@ class FakeLLMClient(LLMClient):
             return LLMResponse(
                 tool_calls=[
                     ToolCall(name="search_guidance", arguments={"query": "phishing urgency credentials"}),
-                    ToolCall(name="map_attack_sequence", arguments={"message": last_user_msg, "findings": []}),
+                    ToolCall(name="map_attack_sequence", arguments={"message": original_user_msg, "findings": []}),
                 ]
             )
         else:

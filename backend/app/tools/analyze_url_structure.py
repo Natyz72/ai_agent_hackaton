@@ -72,10 +72,12 @@ def analyze_url_structure(input: AnalyzeURLStructureInput) -> AnalyzeURLStructur
                 suspicious = True
                 reasons.append("Misleading subdomain vs trusted domain")
 
+        defanged_url = _defang(raw)
         analysis_list.append(
             {
+                "url": defanged_url,
                 "raw": raw,
-                "defanged": _defang(raw),
+                "defanged": defanged_url,
                 "normalized_host": host,
                 "scheme": parsed.scheme,
                 "path": parsed.path,
@@ -108,18 +110,5 @@ def analyze_url_structure(input: AnalyzeURLStructureInput) -> AnalyzeURLStructur
                 tool="analyze_url_structure",
             )
         )
-
-    url_analysis = [
-        URLAnalysis(
-            url=a["defanged"],
-            normalized_host=a["normalized_host"],
-            is_ip=a["is_ip"],
-            has_user_info=a["has_user_info"],
-            user_info=a["user_info"],
-            suspicious=a["suspicious"],
-            reasons=a["reasons"],
-        )
-        for a in analysis_list
-    ]
 
     return AnalyzeURLStructureOutput(urls=urls_found, analysis=analysis_list, findings=findings)

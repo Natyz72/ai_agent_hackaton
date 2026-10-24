@@ -23,8 +23,8 @@ function transformBackendToAssessment(backendData: any): InvestigateResponse {
   const risk = backendData.risk || { score: 10, level: 'low', breakdown: [] };
 
   const urls = urlAnalysis.map((u: any) => ({
-    raw: u.url || '',
-    defanged: u.url || '',
+    raw: u.raw || u.url || '',
+    defanged: u.defanged || u.url || '',
     host: u.normalized_host || '',
   }));
 
@@ -36,7 +36,7 @@ function transformBackendToAssessment(backendData: any): InvestigateResponse {
       source: 'analysis',
     }));
 
-  const credFinding = findings.find((f: any) => f.id === 'SE-CREDS' || f.id === 'IND-SENSITIVE');
+  const credFinding = findings.find((f: any) => f.id === 'SE-CREDS' || f.id === 'SE-CREDENTIAL_REQUEST' || f.id === 'IND-SENSITIVE');
   const credStatus = credFinding ? credFinding.status : 'not_detected';
   const credEvidence = credFinding ? mapSpans(credFinding.source_evidence) : [];
 

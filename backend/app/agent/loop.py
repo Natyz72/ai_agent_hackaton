@@ -82,6 +82,13 @@ async def run_investigation_loop(
             )
             break
 
+        # Record model's function calls in conversation messages for Gemini multi-turn
+        conversation_messages.append({
+            "role": "model",
+            "tool_calls": [{"name": tc.name, "args": tc.arguments} for tc in response.tool_calls],
+            "content": response.content,
+        })
+
         executed_any = False
         for tc in response.tool_calls:
             if total_tool_calls >= max_calls:
@@ -136,7 +143,10 @@ async def run_investigation_loop(
 
                 if tc.name == "analyze_url_structure":
                     for a in getattr(result, "analysis", []):
-                        urls_analysis.append(URLAnalysis(**a))
+                        item = dict(a)
+                        if "url" not in item:
+                            item["url"] = item.get("defanged") or item.get("raw", "")
+                        urls_analysis.append(URLAnalysis(**item))
 
                 elif tc.name == "check_domain_reputation":
                     for r in getattr(result, "results", []):
@@ -150,12 +160,12 @@ async def run_investigation_loop(
                     for s in getattr(result, "steps", []):
                         attack_steps.append(AttackStep(**s))
 
-                # Add result to conversation messages for next round
+                # Add result to conversation messages for next round (Gemini requires role: user for functionResponse)
                 serialized_result = (
                     result.model_dump() if hasattr(result, "model_dump") else str(result)
                 )
                 conversation_messages.append({
-                    "role": "model",
+                    "role": "user",
                     "tool_name": tc.name,
                     "tool_response": serialized_result,
                 })
@@ -180,6 +190,66 @@ async def run_investigation_loop(
                 {"max_tool_calls": max_calls},
             )
         )
+
+    # Fallback/Safety Net: Ensure deterministic offline tools run if they were not called by LLM
+    if "URL-ANALYSIS" not in findings_map:
+        try:
+            url_res = execute_tool("analyze_url_structure", {"message": message}, repo=repo)
+            for f in url_res.findings:
+                findings_map[f.id] = f
+            for a in getattr(url_res, "analysis", []):
+                item = dict(a)
+                if "url" not in item:
+                    item["url"] = item.get("defanged") or item.get("raw", "")
+                urls_analysis.append(URLAnalysis(**item))
+        except Exception:
+            pass
+
+    if "IND-EMAIL" not in findings_map and "IND-SENSITIVE" not in findings_map:
+        try:
+            ind_res = execute_tool("inspect_indicators", {"message": message}, repo=repo)
+            for f in ind_res.findings:
+                findings_map[f.id] = f
+        except Exception:
+            pass
+
+    if "SE-URGENCY" not in findings_map and "SE-CREDS" not in findings_map:
+        try:
+            se_res = execute_tool("detect_social_engineering", {"message": message}, repo=repo)
+            for f in se_res.findings:
+                findings_map[f.id] = f
+        except Exception:
+            pass
+
+    if not reputation_results and urls_analysis:
+        hosts = [u.normalized_host for u in urls_analysis if u.normalized_host]
+        if hosts:
+            try:
+                rep_res = execute_tool("check_domain_reputation", {"hostnames": hosts}, repo=repo)
+                for r in getattr(rep_res, "results", []):
+                    reputation_results.append(ReputationResult(**r))
+                for f in getattr(rep_res, "findings", []):
+                    findings_map[f.id] = f
+            except Exception:
+                pass
+
+    if not guidance_refs:
+        queries = []
+        if any(f.status == "detected" and "URGENCY" in f.id for f in findings_map.values()):
+            queries.append("urgency")
+        if any(f.status == "detected" and ("CRED" in f.id or "SENSITIVE" in f.id) for f in findings_map.values()):
+            queries.append("credentials")
+        if any(f.status == "detected" and "PAYMENT" in f.id for f in findings_map.values()):
+            queries.append("payment")
+        q_str = " ".join(queries) if queries else "suspicious message verification"
+        try:
+            g_res = execute_tool("search_guidance", {"query": q_str}, repo=repo)
+            for g in getattr(g_res, "guidance", []):
+                guidance_refs.append(GuidanceRef(**g))
+            for f in getattr(g_res, "findings", []):
+                findings_map[f.id] = f
+        except Exception:
+            pass
 
     # Python-controlled post-processing
     raw_findings = list(findings_map.values())

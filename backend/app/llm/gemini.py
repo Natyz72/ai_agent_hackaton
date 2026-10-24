@@ -1,3 +1,4 @@
+import json
 from typing import Any
 import httpx
 from app.config import settings
@@ -28,16 +29,34 @@ class GeminiClient(LLMClient):
         # Format contents for Gemini REST API
         contents = []
         for m in messages:
-            role = "user" if m.get("role") == "user" else "model"
+            role = m.get("role", "user")
             parts = []
             if m.get("content"):
                 parts.append({"text": m["content"]})
+            if m.get("tool_calls"):
+                role = "model"
+                for tc in m["tool_calls"]:
+                    parts.append({
+                        "functionCall": {
+                            "name": tc["name"],
+                            "args": tc.get("args", {}),
+                        }
+                    })
             if m.get("tool_response"):
-                # Tool response format in Gemini API
+                # Gemini functionResponse requires role: user
+                role = "user"
+                resp_val = m["tool_response"]
+                if isinstance(resp_val, str):
+                    try:
+                        resp_val = json.loads(resp_val)
+                    except Exception:
+                        resp_val = {"result": resp_val}
+                elif not isinstance(resp_val, dict):
+                    resp_val = {"result": resp_val}
                 parts.append({
                     "functionResponse": {
                         "name": m.get("tool_name", "tool"),
-                        "response": {"result": m.get("tool_response")},
+                        "response": resp_val,
                     }
                 })
             if parts:

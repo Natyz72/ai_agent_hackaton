@@ -17,6 +17,15 @@ def search_guidance(
 
     if query:
         passages = repo.search_guidance(query)
+        # If multi-word query didn't match as an exact phrase, search individual keywords
+        if not passages:
+            for word in query.split():
+                clean_word = word.strip(".,;:\"'()[]{}").lower()
+                if len(clean_word) >= 3 and clean_word not in ("and", "the", "for", "with", "this"):
+                    hits = repo.search_guidance(clean_word)
+                    for h in hits:
+                        if not any(p.get("id") == h.get("id") for p in passages):
+                            passages.append(h)
 
     # If no passages found or additional context available, search for relevant terms
     if not passages and input.findings_context:

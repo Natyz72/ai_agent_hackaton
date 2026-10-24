@@ -82,7 +82,7 @@ def assess_risk(
             notes.append("One or more domains have unknown reputation; score was not decreased.")
 
     # 3. Social Engineering Rules
-    if "SE-CREDS" in detected_ids:
+    if "SE-CREDS" in detected_ids or "SE-CREDENTIAL_REQUEST" in detected_ids:
         breakdown.append(
             RiskBreakdownItem(
                 rule="social_eng_credentials",
@@ -102,7 +102,7 @@ def assess_risk(
         )
         score += 20
 
-    if "SE-PAYMENT" in detected_ids:
+    if "SE-PAYMENT" in detected_ids or "SE-PAYMENT_REDIRECT" in detected_ids:
         breakdown.append(
             RiskBreakdownItem(
                 rule="social_eng_payment",
