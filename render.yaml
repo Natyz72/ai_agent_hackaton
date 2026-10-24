@@ -1,0 +1,39 @@
+# Render Deployment Configuration (Free Plan Compliant)
+#
+# Single Render web service serving both backend FastAPI endpoints (/api)
+# and the compiled React production frontend (web/dist).
+# Secrets are managed directly in the Render dashboard and marked sync: false.
+
+services:
+  - type: web
+    name: suspicious-message-agent
+    runtime: python
+    plan: free
+    region: oregon
+    rootDir: .
+    buildCommand: pip install -r backend/requirements.txt && cd web && npm ci && npm run build
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: APP_ENV
+        value: production
+      - key: GEMINI_MODEL
+        value: gemini-2.0-flash
+      - key: MAX_TOOL_CALLS
+        value: "6"
+      - key: MAX_MESSAGE_LENGTH
+        value: "10000"
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "30"
+      - key: PROPOSAL_EXPIRY_MINUTES
+        value: "60"
+      # Secrets: set these securely in the Render dashboard (never commit real secrets)
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
