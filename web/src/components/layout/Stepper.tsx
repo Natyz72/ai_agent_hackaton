@@ -26,17 +26,18 @@ export function Stepper({ currentStep }: StepperProps) {
             >
               {step.number}
             </div>
-            <span
-              className={`text-sm font-medium ${
-                step.number === currentStep
-                  ? 'text-indigo-700'
-                  : step.number < currentStep
-                  ? 'text-indigo-600'
-                  : 'text-slate-600'
-              }`}
-            >
-              {step.label}
-            </span>
+             <Link to={step.link}>
+              <span
+                className={`text-sm font-medium ${step.number === currentStep
+                    ? 'text-indigo-700'
+                    : step.number < currentStep
+                      ? 'text-indigo-600'
+                      : 'text-slate-600'
+                  }`}
+              >
+                {step.label}
+              </span>
+            </Link>
           </div>
           {index < steps.length - 1 && (
             <div
