@@ -76,3 +76,16 @@ class RiskAssessment(BaseModel):
     heuristic: bool = True
     breakdown: list[RiskBreakdownItem] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
+
+
+class DemoMessage(BaseModel):
+    id: str
+    title: str
+    category: str
+    description: str
+    expected_risk: str
+    message: str
+
+
+class DemoMessagesResponse(BaseModel):
+    messages: list[DemoMessage]

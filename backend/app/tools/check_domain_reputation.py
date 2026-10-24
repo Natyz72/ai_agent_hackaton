@@ -34,6 +34,16 @@ def check_domain_reputation(
             continue
 
         entry = repo.get_domain_reputation(norm_host)
+        # Check parent domains if subdomain is being queried (e.g. login.phishy.example)
+        if not entry and "." in norm_host:
+            parts = norm_host.split(".")
+            for i in range(1, len(parts) - 1):
+                parent_candidate = ".".join(parts[i:])
+                p_entry = repo.get_domain_reputation(parent_candidate)
+                if p_entry and p_entry.get("status") == "suspicious":
+                    entry = p_entry
+                    break
+
         if entry:
             status = entry.get("status", "unknown")
             source = entry.get("source", "database")
@@ -69,7 +79,6 @@ def check_domain_reputation(
             f_status = "not_detected"
             f_reason = f"Domain {norm_host} is known trusted: {reason}"
         else:
-            # Per AGENTS.md: unknown means unknown, not safe or malicious
             f_status = "not_assessable"
             f_reason = f"Domain {norm_host} reputation is unknown: {reason}"
 

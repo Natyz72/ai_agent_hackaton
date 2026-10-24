@@ -1,4 +1,5 @@
 from typing import Any
+import re
 from app.llm.base import LLMClient, LLMResponse, ToolCall
 
 
@@ -42,6 +43,15 @@ class FakeLLMClient(LLMClient):
                 last_user_msg = m.get("content", "")
                 break
 
+        # Extract hostnames from message for domain check
+        found_hosts = []
+        for match in re.finditer(r"(?:https?://)?([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})", last_user_msg):
+            host = match.group(1).split("@")[-1].split(":")[0].lower()
+            if host and host not in found_hosts:
+                found_hosts.append(host)
+        if not found_hosts:
+            found_hosts = ["example.com"]
+
         if self.call_count == 1:
             return LLMResponse(
                 tool_calls=[
@@ -53,7 +63,7 @@ class FakeLLMClient(LLMClient):
             return LLMResponse(
                 tool_calls=[
                     ToolCall(name="detect_social_engineering", arguments={"message": last_user_msg}),
-                    ToolCall(name="check_domain_reputation", arguments={"hostnames": ["example.com"]}),
+                    ToolCall(name="check_domain_reputation", arguments={"hostnames": found_hosts}),
                 ]
             )
         elif self.call_count == 3:

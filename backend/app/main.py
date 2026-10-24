@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from app.api.routes import health, investigate, incidents
+from app.api.routes import health, investigate, incidents, demo
 
 app = FastAPI(title="AI Suspicious Message Investigation Agent", version="0.1.0")
 
@@ -21,6 +21,7 @@ app.add_middleware(
 app.include_router(health.router, prefix="/api")
 app.include_router(investigate.router, prefix="/api")
 app.include_router(incidents.router, prefix="/api")
+app.include_router(demo.router, prefix="/api")
 
 # Serve web/dist if present (Render deployment)
 web_dist = Path(__file__).resolve().parent.parent.parent / "web" / "dist"

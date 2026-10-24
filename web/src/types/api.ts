@@ -147,3 +147,17 @@ export interface IncidentActivityResponse {
   incident_id: string;
   activity: ActivityEvent[];
 }
+
+
+export interface DemoMessage {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  expected_risk: string;
+  message: string;
+}
+
+export interface DemoMessagesResponse {
+  messages: DemoMessage[];
+}
